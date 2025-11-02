@@ -1,49 +1,78 @@
 #include <Arduino.h>
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <WebServer.h>
+#include <uri/UriBraces.h>
 #include <ArduinoJson.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ILI9341.h>
+#include <DHT.h>
+
+#define WIFI_SSID "Wokwi-GUEST"
+#define WIFI_PASSWORD ""
+#define WIFI_CHANNEL 6
 
 #define TFT_DC 2
 #define TFT_CS 27
+#define DHTPIN 5
+
+#define JOYSTICK_H 33
+#define JOYSTICK_V 32
+#define JOYSTICK_SEL 35
+
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 
-void setup() {
+DHT dht(DHTPIN, DHT22);
+
+void setup()
+{
+
+  pinMode(JOYSTICK_V, INPUT);
+  pinMode(JOYSTICK_H, INPUT);
+  pinMode(JOYSTICK_SEL, INPUT_PULLUP);
+
+  dht.begin();
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD, WIFI_CHANNEL);
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(100);
+    Serial.print(".");
+  }
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+ 
   tft.begin();
   tft.setRotation(1);
-
 }
 
-void loop() {
+void loop()
+{
+  delay(2000);
+  tft.fillScreen(ILI9341_BLACK);
+  float humidity = dht.readHumidity();
+  float temperature = dht.readTemperature();
+  int vert = analogRead(JOYSTICK_V);
+  int horiz = analogRead(JOYSTICK_H);
+  bool select = !digitalRead(JOYSTICK_SEL);
 
-    //tft.fillScreen(ILI9341_BLACK);
-    tft.setCursor(0, 0);
-    
+  tft.setCursor(0, 0);
 
-    tft.setTextColor(ILI9341_WHITE);
-    tft.setTextSize(2);
-    tft.print("DHT SENSOR");
-    
-    tft.setTextColor(ILI9341_RED);
-    tft.setTextSize(2);
-    tft.println(" ");
-    tft.println(" ");
-    tft.print(F("Humidity: "));
-    tft.print(F("%"));
-
-    tft.setTextColor(ILI9341_BLUE);
-    tft.setTextSize(2);
-    tft.println(" ");
-    tft.println(" ");
-    tft.print(F("Temp: "));
-    tft.print((char)223);
-    tft.print("C");
-
-    // tft.setTextColor(ILI9341_GREEN);
-    // tft.setTextSize(2);
-    // tft.println(" ");
-    // tft.println(" ");
-    // tft.println(" ");
-    // tft.println(" ");
-    // tft.print("ECE-2024");
-    delay(1000);
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(2);
+  tft.println("DHT22");
+  tft.print(F("Temperature  "));
+  tft.print(temperature);
+  tft.print((char)223);
+  tft.println("C");
+  tft.print(F("Humidity: "));
+  tft.print(humidity);
+  tft.println(" %");
+  tft.print(F("Vertical Value: "));
+  tft.println(vert);
+  tft.print(F("Horizontal Value: "));
+  tft.println(horiz);
+  tft.print(F("Select Pressed: "));
+  tft.println(select ? "YES" : "NO");
+  delay(1000);
 }
