@@ -1,0 +1,1 @@
+//Will use the rectangle function to draw the progress bar

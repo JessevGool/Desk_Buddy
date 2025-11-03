@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "author": "Anonymous maker",
+  "author": "Jesse van Gool",
   "editor": "wokwi",
   "parts": [
     {
@@ -12,7 +12,7 @@
       "attrs": {}
     },
     {
-      "type": "wokwi-ili9341",
+      "type": "board-ili9341-cap-touch",
       "id": "lcd1",
       "top": -410.5,
       "left": -263.6,
