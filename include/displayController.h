@@ -1,5 +1,5 @@
 #pragma once
-#include <unordered_map>
+#include <vector>
 #include <string>
 #include "DisplayPage.h"
 
@@ -8,21 +8,23 @@ namespace DeskBuddy
     class DisplayController
     {
     public:
-        DisplayController() = default;
+        DisplayController();
 
         // Add without triggering default construction
-        void AddPage(const DisplayPage& page);
+        void AddPage(const DisplayPage &page);
 
         // Return a reference to avoid copies and avoid default construction
-        const DisplayPage& GetPage(const std::string& name) const;
-
+        const DisplayPage &GetPage(const std::string &name) const;
+        DisplayPage &GetNextPage();
         // Optional: non-const accessor
-        DisplayPage& GetPage(const std::string& name);
+        DisplayPage &GetPage(const std::string &name);
 
         // Optional: check existence
-        bool HasPage(const std::string& name) const;
+        bool HasPage(const std::string &name) const;
 
     private:
-        std::unordered_map<std::string, DisplayPage> pages;
+        std::vector<std::pair<std::string, DisplayPage>> pages;
+
+        size_t currentIndex = 0;
     };
 }

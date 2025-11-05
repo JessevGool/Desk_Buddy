@@ -28,11 +28,52 @@
 #define JOYSTICK_V 32
 #define JOYSTICK_SEL 27
 
+constexpr int ADC_CENTER = 2048;       // ESP32 12-bit ADC ~ center
+constexpr int DEADZONE = 300;          // ignore small wiggles
+constexpr int RIGHT_OFFSET = 800;      // how far from center counts as RIGHT
+constexpr unsigned long HOLD_MS = 500; // hold duration to trigger (ms)
+
+static bool rightActive = false;       // currently in RIGHT region
+static bool rightFired = false;        // already triggered for this hold
+static unsigned long rightStartMs = 0; // when RIGHT started
+
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 
 DeskBuddy::DisplayController displayController;
 DeskBuddy::ProgressBar *progressBar = nullptr;
 DeskBuddy::ApiClient *apiClient = nullptr;
+DeskBuddy::DisplayPage *currentPage = nullptr;
+
+bool joystickHoldRight(int horiz)
+{
+  int delta = horiz - ADC_CENTER;
+  bool inRight = (delta >= (DEADZONE + RIGHT_OFFSET));
+
+  if (inRight)
+  {
+    if (!rightActive)
+    {
+      rightActive = true;
+      rightStartMs = millis();
+      rightFired = false;
+    }
+    else
+    {
+      if (!rightFired && (millis() - rightStartMs >= HOLD_MS))
+      {
+        rightFired = true; // single fire per hold
+        return true;
+      }
+    }
+  }
+  else
+  {
+    // left/neutral/unknown -> reset
+    rightActive = false;
+    rightFired = false;
+  }
+  return false;
+}
 
 void connectToWiFi()
 {
@@ -60,10 +101,11 @@ void setup()
   // dht.begin();
   connectToWiFi();
 
-  DeskBuddy::DisplayPage mainPage = DeskBuddy::DisplayPage("Main");
-  displayController.AddPage(mainPage);
-
   progressBar = new DeskBuddy::ProgressBar(tft, 60, 150, 200, 30);
+  
+  // Get the initial page from displayController (it starts with "Main" page)
+  currentPage = &displayController.GetPage("Main");
+  
   delay(2000);
 
   DeskBuddy::ApiClient::Options opt;
@@ -87,6 +129,13 @@ void setup()
   }
   delay(20000);
   tft.fillScreen(ILI9341_BLACK);
+  
+  // Display the current page name
+  tft.setCursor(0, 0);
+  tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
+  tft.setTextSize(2);
+  tft.print(F("Current Page: "));
+  tft.println(currentPage->GetName().c_str());
 }
 
 void loop()
@@ -95,21 +144,47 @@ void loop()
   int horiz = analogRead(JOYSTICK_H);
   int butonState = digitalRead(JOYSTICK_SEL);
 
+  if (joystickHoldRight(horiz))
+  {
+    DeskBuddy::DisplayPage &next = displayController.GetNextPage();
+    currentPage = &next;  // Update current page pointer
+    Serial.printf("Switching page to: %s\n", next.GetName().c_str());
+    tft.fillScreen(ILI9341_BLACK);
+  }
+
   tft.setCursor(0, 0);
-  DeskBuddy::DisplayPage currentPage = displayController.GetPage("Main");
   tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
   tft.setTextSize(2);
-  tft.print(F("Page:"));
-  tft.println(currentPage.GetName().c_str());
-  tft.println(F("Joystick Test"));
-  tft.setTextSize(1);
-  tft.print(F("Vertical Value: "));
-  tft.println(vert);
-  tft.print(F("Horizontal Value: "));
-  tft.println(horiz);
-  tft.print(F("Select Pressed: "));
-  tft.println(butonState);
-
-  progressBar->setProgress((vert / 4095.0) * 100);
-  progressBar->draw();
+  tft.print(F("Page: "));
+  tft.println(currentPage->GetName().c_str());
+  
+  // Display different content based on current page
+  if (currentPage->GetName() == "Main")
+  {
+    tft.setTextSize(1);
+    tft.setCursor(0, 30);
+    tft.println("Main Page Content");
+    tft.print("Vertical: ");
+    tft.println(vert);
+    tft.print("Horizontal: ");
+    tft.println(horiz);
+    tft.print("Button: ");
+    tft.println(butonState == LOW ? "Pressed" : "Released");
+    
+    // Show progress bar on main page
+    if (progressBar)
+    {
+      progressBar->setProgress((vert / 4095.0) * 100);
+      progressBar->draw();
+    }
+  }
+  else if (currentPage->GetName() == "Second")
+  {
+    tft.setTextSize(1);
+    tft.setCursor(0, 30);
+    tft.println("Second Page Content");
+    tft.println("This is the second page!");
+    tft.println("Use joystick right to switch");
+    tft.println("back to Main page.");
+  }
 }
