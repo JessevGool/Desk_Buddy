@@ -26,10 +26,10 @@
 #define JOYSTICK_SEL 27
 
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
-// DHT dht(DHTPIN, DHT22); // Needs to be a DHT11
 
 DeskBuddy::DisplayController displayController;
-DeskBuddy::ProgressBar* progressBar = nullptr;
+DeskBuddy::ProgressBar *progressBar = nullptr;
+
 void setup()
 {
   displayController = DeskBuddy::DisplayController();
@@ -57,22 +57,19 @@ void setup()
 
   progressBar = new DeskBuddy::ProgressBar(tft, 60, 150, 200, 30);
   delay(2000);
+  tft.fillScreen(ILI9341_BLACK);
 }
 
 void loop()
 {
-  tft.fillScreen(ILI9341_BLACK);
-  // float humidity = dht.readHumidity();
-  // float temperature = dht.readTemperature();
   int vert = analogRead(JOYSTICK_V);
   int horiz = analogRead(JOYSTICK_H);
   int butonState = digitalRead(JOYSTICK_SEL);
 
   tft.setCursor(0, 0);
   DeskBuddy::DisplayPage currentPage = displayController.GetPage("Main");
-  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
   tft.setTextSize(2);
-  // tft.println("DHT22");
   tft.print(F("Page:"));
   tft.println(currentPage.GetName().c_str());
   tft.println(F("Joystick Test"));
@@ -86,8 +83,4 @@ void loop()
 
   progressBar->setProgress((vert / 4095.0) * 100);
   progressBar->draw();
-
-  // tft.drawCircle(200, 50, 30, ILI9341_GREEN);
-  // tft.drawCircle(200, 50, 25, ILI9341_RED);
-  delay(1000);
 }
