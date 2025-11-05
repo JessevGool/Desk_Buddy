@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
+#include <WiFiClientSecure.h>
+#include <HTTPClient.h>
 #include <WebServer.h>
 #include <uri/UriBraces.h>
 #include <ArduinoJson.h>
@@ -11,6 +13,7 @@
 #include "displayController.h"
 #include "secrets.h"
 #include "progressBar.h"
+#include "apiClient.h"
 
 #define WIFI_SSID_W "Wokwi-GUEST"
 #define WIFI_PASSWORD_W ""
@@ -29,9 +32,22 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 
 DeskBuddy::DisplayController displayController;
 DeskBuddy::ProgressBar *progressBar = nullptr;
+DeskBuddy::ApiClient *apiClient = nullptr;
 
+void connectToWiFi()
+{
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD, WIFI_CHANNEL);
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(300);
+    tft.print(".");
+  }
+  tft.println();
+  tft.printf("\nWiFi OK: %s\n", WiFi.localIP().toString().c_str());
+}
 void setup()
 {
+  Serial.begin(115200);
   displayController = DeskBuddy::DisplayController();
   pinMode(JOYSTICK_V, INPUT);
   pinMode(JOYSTICK_H, INPUT);
@@ -42,21 +58,34 @@ void setup()
   tft.fillScreen(ILI9341_BLACK);
   tft.println("Connecting to WiFi...");
   // dht.begin();
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD, WIFI_CHANNEL);
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(100);
-    tft.print(".");
-  }
-  tft.println();
-  tft.println("IP address: ");
-  tft.println(WiFi.localIP());
+  connectToWiFi();
 
   DeskBuddy::DisplayPage mainPage = DeskBuddy::DisplayPage("Main");
   displayController.AddPage(mainPage);
 
   progressBar = new DeskBuddy::ProgressBar(tft, 60, 150, 200, 30);
   delay(2000);
+
+  DeskBuddy::ApiClient::Options opt;
+  opt.timeout_ms = 7000;
+  opt.retries = 2;
+  opt.insecure = true;
+
+  apiClient = new DeskBuddy::ApiClient("https://jsonplaceholder.typicode.com", opt);
+
+  {
+    DynamicJsonDocument doc(512);
+    int code = 0;
+    bool ok = apiClient->getJson("/todos/1", doc, &code);
+    tft.printf("GET /todos/1 -> %d (%s)\n", code, ok ? "ok" : "fail");
+    if (ok)
+    {
+      tft.printf("title: %s, completed: %s\n",
+                 doc["title"].as<const char *>(),
+                 (doc["completed"].as<bool>() ? "true" : "false"));
+    }
+  }
+  delay(20000);
   tft.fillScreen(ILI9341_BLACK);
 }
 
