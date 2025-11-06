@@ -1,79 +1,75 @@
-#include "DisplayController.h"
+#include "displayController.h"
 #include <stdexcept>
 #include <utility> // for std::make_pair
 
 namespace DeskBuddy
 {
 
-    DisplayController::DisplayController() : currentIndex(0)
+    DisplayController::DisplayController(Adafruit_ILI9341 &display) : display(display), currentIndex(0)
     {
-        DeskBuddy::DisplayPage mainPage = DeskBuddy::DisplayPage("Main");
-        DeskBuddy::DisplayPage secondPage = DeskBuddy::DisplayPage("Second");
-
-        this->AddPage(mainPage);
-        this->AddPage(secondPage);
+        this->addPage(std::unique_ptr<DisplayPage>(new MainPage()));
+        this->addPage(std::unique_ptr<DisplayPage>(new SecondPage()));
     }
-    void DisplayController::AddPage(const DisplayPage &page)
+
+    void DisplayController::addPage(std::unique_ptr<DisplayPage> page)
     {
-        const std::string &name = page.GetName();
+        const std::string &name = page->getName();
 
         // Look for an existing page with the same name
-        for (std::vector<std::pair<std::string, DisplayPage>>::iterator it = pages.begin();
-             it != pages.end();
-             ++it)
+        for (auto it = pages.begin(); it != pages.end(); ++it)
         {
             if (it->first == name)
             {
-                it->second = page; // overwrite
+                it->second = std::move(page); // overwrite
                 return;
             }
         }
 
         // Not found -> append
-        pages.push_back(std::make_pair(name, page));
+        pages.push_back(std::make_pair(name, std::move(page)));
         if (pages.size() == 1)
         {
             currentIndex = 0; // init on first insert
         }
     }
 
-    const DisplayPage &DisplayController::GetPage(const std::string &name) const
+    const DisplayPage &DisplayController::getPage(const std::string &name) const
     {
-        for (std::vector<std::pair<std::string, DisplayPage>>::const_iterator it = pages.begin();
-             it != pages.end();
-             ++it)
+        for (auto it = pages.begin(); it != pages.end(); ++it)
         {
             if (it->first == name)
             {
-                return it->second;
+                return *(it->second);
             }
         }
         throw std::out_of_range("Page not found: " + name);
     }
 
-    DisplayPage &DisplayController::GetPage(const std::string &name)
+    DisplayPage &DisplayController::getPage(const std::string &name)
     {
-        // Reuse const overload without auto
-        const DisplayController *selfConst = this;
-        const DisplayPage &cref = selfConst->GetPage(name);
-        return const_cast<DisplayPage &>(cref);
+        for (auto it = pages.begin(); it != pages.end(); ++it)
+        {
+            if (it->first == name)
+            {
+                return *(it->second);
+            }
+        }
+        throw std::out_of_range("Page not found: " + name);
     }
 
-    DisplayPage &DisplayController::GetNextPage()
+    DisplayPage &DisplayController::getNextPage()
     {
         if (pages.empty())
         {
             throw std::runtime_error("No pages available");
         }
         currentIndex = (currentIndex + 1) % pages.size();
-        return pages[currentIndex].second;
+        return *(pages[currentIndex].second);
     }
 
-    bool DisplayController::HasPage(const std::string &name) const
+    bool DisplayController::hasPage(const std::string &name) const
     {
-        for (std::vector<std::pair<std::string, DisplayPage>>::const_iterator it = pages.begin();
-             it != pages.end();
-             ++it)
+        for (auto it = pages.begin(); it != pages.end(); ++it)
         {
             if (it->first == name)
             {
@@ -81,6 +77,17 @@ namespace DeskBuddy
             }
         }
         return false;
+    }
+
+    void DisplayController::drawCurrentPage()
+    {
+        this->display.setCursor(0, 0);
+        this->display.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
+        if (pages.empty())
+        {
+            throw std::runtime_error("No pages available to draw");
+        }
+        pages[currentIndex].second->draw(this->display);
     }
 
 } // namespace DeskBuddy
