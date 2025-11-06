@@ -7,28 +7,32 @@ namespace DeskBuddy
     // ---- Singleton init overloads ----
     void ApiClient::init()
     {
-        if (!g_instance) g_instance = new ApiClient();
+        if (!g_instance)
+            g_instance = new ApiClient();
         g_instance->_base = String();
-        g_instance->_opt  = Options{};
+        g_instance->_opt = Options{};
     }
 
     void ApiClient::init(const String &baseUrl)
     {
-        if (!g_instance) g_instance = new ApiClient();
+        if (!g_instance)
+            g_instance = new ApiClient();
         g_instance->_base = baseUrl;
-        g_instance->_opt  = Options{};
+        g_instance->_opt = Options{};
     }
 
     void ApiClient::init(const String &baseUrl, const Options &opt)
     {
-        if (!g_instance) g_instance = new ApiClient();
+        if (!g_instance)
+            g_instance = new ApiClient();
         g_instance->_base = baseUrl;
-        g_instance->_opt  = opt;
+        g_instance->_opt = opt;
     }
 
     ApiClient &ApiClient::instance()
     {
-        if (!g_instance) init(); // safe default
+        if (!g_instance)
+            init(); // safe default
         return *g_instance;
     }
 
@@ -70,29 +74,59 @@ namespace DeskBuddy
                                 int *codeOut,
                                 const RequestParams &rp)
     {
-        auto onStream = [&](Stream &s) {
-            DeserializationError err = deserializeJson(out, s);
-            return !err;
+        String response;
+        DeserializationError lastErr = DeserializationError::Ok;
+
+        auto onStream = [&](Stream &s)
+        {
+            // Read the entire response body into a String for debugging
+            while (s.available())
+            {
+                response += (char)s.read();
+                // Optional safety limit:
+                if (response.length() > 32768)
+                    break;
+            }
+
+            // Try to parse the full response
+            lastErr = deserializeJson(out, response);
+            return !lastErr;
         };
-        return request(method, urlOrPath, body, onStream, codeOut, rp);
+
+        bool ok = request(method, urlOrPath, body, onStream, codeOut, rp);
+
+        // Always print response if something went wrong
+        if (!ok || lastErr)
+        {
+            Serial.println(F("---- Raw response start ----"));
+            Serial.println(response);
+            Serial.println(F("---- Raw response end ----"));
+            Serial.printf("JSON parse error: %s\n", lastErr.c_str());
+        }
+
+        return ok;
     }
 
     void ApiClient::prepareClient()
     {
-        if (_opt.insecure) _secure.setInsecure();
-        else if (_opt.ca_pem) _secure.setCACert(_opt.ca_pem);
+        if (_opt.insecure)
+            _secure.setInsecure();
+        else if (_opt.ca_pem)
+            _secure.setCACert(_opt.ca_pem);
     }
 
     void ApiClient::addStdHeaders(HTTPClient &http, bool hasBody, const RequestParams &rp)
     {
-        if (hasBody) http.addHeader(F("Content-Type"), F("application/json"));
+        if (hasBody)
+            http.addHeader(F("Content-Type"), F("application/json"));
 
         // global defaults
         int start = 0;
         while (start < _extraHeaders.length())
         {
             int end = _extraHeaders.indexOf('\n', start);
-            if (end < 0) end = _extraHeaders.length();
+            if (end < 0)
+                end = _extraHeaders.length();
             String line = _extraHeaders.substring(start, end);
             int colon = line.indexOf(':');
             if (colon > 0)
@@ -119,7 +153,8 @@ namespace DeskBuddy
         while (s2 < rp.extraHeaders.length())
         {
             int e2 = rp.extraHeaders.indexOf('\n', s2);
-            if (e2 < 0) e2 = rp.extraHeaders.length();
+            if (e2 < 0)
+                e2 = rp.extraHeaders.length();
             String line = rp.extraHeaders.substring(s2, e2);
             int colon = line.indexOf(':');
             if (colon > 0)
@@ -140,31 +175,43 @@ namespace DeskBuddy
 
     String ApiClient::resolveUrl(const String &urlOrPath) const
     {
-        if (isAbsoluteUrl(urlOrPath)) return urlOrPath;
+        if (isAbsoluteUrl(urlOrPath))
+            return urlOrPath;
         return joinUrl(urlOrPath);
     }
 
     String ApiClient::joinUrl(const String &path) const
     {
-        if (_base.length() == 0) return path;
-        if (path.length() == 0)  return _base;
+        if (_base.length() == 0)
+            return path;
+        if (path.length() == 0)
+            return _base;
 
-        const bool baseEndsSlash  = _base.endsWith("/");
+        const bool baseEndsSlash = _base.endsWith("/");
         const bool pathStartsSlash = path.startsWith("/");
 
-        if (baseEndsSlash && pathStartsSlash)  return _base + path.substring(1);
-        if (!baseEndsSlash && !pathStartsSlash) return _base + "/" + path;
+        if (baseEndsSlash && pathStartsSlash)
+            return _base + path.substring(1);
+        if (!baseEndsSlash && !pathStartsSlash)
+            return _base + "/" + path;
         return _base + path;
     }
 
     bool ApiClient::beginForUrl(HTTPClient &http, const String &url)
     {
-        if (url.startsWith(F("https://"))) return http.begin(_secure, url);
-        if (url.startsWith(F("http://")))  return http.begin(_plain,  url);
+        if (url.startsWith(F("https://")))
+            return http.begin(_secure, url);
+        if (url.startsWith(F("http://")))
+            return http.begin(_plain, url);
         // fallback attempt after join
         String r = resolveUrl(url);
-        if (r.startsWith(F("https://"))) return http.begin(_secure, r);
-        if (r.startsWith(F("http://")))  return http.begin(_plain,  r);
+        if (r.startsWith(F("https://")))
+            return http.begin(_secure, r);
+        if (r.startsWith(F("http://")))
+            return http.begin(_plain, r);
         return false;
     }
+
+    // Template specialization is in the header, but we need to make sure
+    // the implementation actually works. The template in the header should handle this.
 }

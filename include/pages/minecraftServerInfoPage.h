@@ -1,9 +1,11 @@
 #pragma once
 #include "displayPage.h"
 #include "apiClient.h"
-
+#include "models/mcServerModel.h"
+#include "progressBar.h"
 namespace DeskBuddy
 {
+
     class MinecraftServerInfoPage : public DisplayPage
     {
     public:

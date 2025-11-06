@@ -1,4 +1,5 @@
 // Will use the rectangle function to draw the progress bar
+#pragma once
 #include <Adafruit_ILI9341.h>
 
 namespace DeskBuddy

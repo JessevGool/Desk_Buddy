@@ -84,7 +84,7 @@ namespace DeskBuddy
             HTTPClient http;
             const String url = resolveUrl(urlOrPath);
             http.setTimeout(_opt.timeout_ms);
-
+            http.useHTTP10(true);
             if (!beginForUrl(http, url)) return false;
 
             addStdHeaders(http, rawBody != nullptr, rp);
