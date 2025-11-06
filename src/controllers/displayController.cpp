@@ -1,14 +1,24 @@
-#include "displayController.h"
+#include "controllers/displayController.h"
 #include <stdexcept>
 #include <utility> // for std::make_pair
 
 namespace DeskBuddy
 {
 
-    DisplayController::DisplayController(Adafruit_ILI9341 &display) : display(display), currentIndex(0)
+    DisplayController::DisplayController(Adafruit_ILI9341 &display, JoystickController &joystick)
+        : display(display), currentIndex(0), joystickController(&joystick)
     {
+        this->setInitialPages();
+    }
+
+    void DisplayController::setInitialPages()
+    {
+
+        ApiClient &client = DeskBuddy::ApiClient::instance();
+
         this->addPage(std::unique_ptr<DisplayPage>(new MainPage()));
         this->addPage(std::unique_ptr<DisplayPage>(new SecondPage()));
+        this->addPage(std::unique_ptr<DisplayPage>(new MinecraftServerInfoPage(client)));
     }
 
     void DisplayController::addPage(std::unique_ptr<DisplayPage> page)
@@ -64,6 +74,18 @@ namespace DeskBuddy
             throw std::runtime_error("No pages available");
         }
         currentIndex = (currentIndex + 1) % pages.size();
+        needsRedraw = true;
+        return *(pages[currentIndex].second);
+    }
+
+    DisplayPage &DisplayController::getPreviousPage()
+    {
+        if (pages.empty())
+        {
+            throw std::runtime_error("No pages available");
+        }
+        currentIndex = (currentIndex == 0) ? pages.size() - 1 : currentIndex - 1;
+        needsRedraw = true;
         return *(pages[currentIndex].second);
     }
 
@@ -81,13 +103,61 @@ namespace DeskBuddy
 
     void DisplayController::drawCurrentPage()
     {
-        this->display.setCursor(0, 0);
-        this->display.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
         if (pages.empty())
         {
             throw std::runtime_error("No pages available to draw");
         }
-        pages[currentIndex].second->draw(this->display);
+
+        if (needsRedraw)
+        {
+            display.fillScreen(ILI9341_BLACK);
+            needsRedraw = false;
+        }
+
+        display.setCursor(0, 0);
+        display.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
+        pages[currentIndex].second->draw(display);
+    }
+
+    void DisplayController::setJoystickController(JoystickController &joystick)
+    {
+        joystickController = &joystick;
+    }
+
+    void DisplayController::handleInput()
+    {
+        if (!joystickController)
+            return;
+
+        // Debounce input
+        unsigned long currentTime = millis();
+        if (currentTime - lastInputTime < INPUT_DEBOUNCE_MS)
+            return;
+
+        // Handle navigation
+        if (joystickController->joystickHoldRight())
+        {
+            getNextPage();
+            lastInputTime = currentTime;
+            Serial.printf("Switched to next page: %s\n", pages[currentIndex].first.c_str());
+        }
+        else if (joystickController->joystickHoldLeft())
+        {
+            getPreviousPage();
+            lastInputTime = currentTime;
+            Serial.printf("Switched to previous page: %s\n", pages[currentIndex].first.c_str());
+        }
+
+        // You can add more input handling here, like:
+        // - Up/Down for page-specific navigation
+        // - Select button for page-specific actions
+    }
+
+
+    void DisplayController::update()
+    {
+        handleInput();
+        drawCurrentPage();
     }
 
 } // namespace DeskBuddy

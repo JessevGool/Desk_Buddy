@@ -6,6 +6,9 @@
 #include "displayPage.h"
 #include "pages/mainPage.h"
 #include "pages/secondPage.h"
+#include "pages/minecraftServerInfoPage.h"
+#include "controllers/joystickController.h"
+#include "apiClient.h"
 
 namespace DeskBuddy
 {
@@ -13,25 +16,36 @@ namespace DeskBuddy
     {
     public:
         DisplayController() = default;
-        DisplayController(Adafruit_ILI9341 &display);
+        DisplayController(Adafruit_ILI9341 &display, JoystickController &joystick);
 
-        // Add without triggering default construction
+        // Page management
         void addPage(std::unique_ptr<DisplayPage> page);
-
-        // Return a reference to avoid copies and avoid default construction
         const DisplayPage &getPage(const std::string &name) const;
         DisplayPage &getNextPage();
-        // Optional: non-const accessor
+        DisplayPage &getPreviousPage();
         DisplayPage &getPage(const std::string &name);
-
-        // Optional: check existence
         bool hasPage(const std::string &name) const;
+
+        // Display and input handling
+        void update(); // Call this in loop() - handles input and drawing
         void drawCurrentPage();
 
+        // Input handling
+        void setJoystickController(JoystickController &joystick);
+        void handleInput();
+
     private:
+        void setInitialPages();
+
         std::vector<std::pair<std::string, std::unique_ptr<DisplayPage>>> pages;
 
         size_t currentIndex = 0;
         Adafruit_ILI9341 display;
+        JoystickController *joystickController = nullptr;
+
+        // Input state tracking
+        bool needsRedraw = true;
+        unsigned long lastInputTime = 0;
+        static const unsigned long INPUT_DEBOUNCE_MS = 50;
     };
 }

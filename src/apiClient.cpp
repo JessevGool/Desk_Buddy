@@ -1,62 +1,170 @@
 #include "ApiClient.h"
-#include <stdexcept>
 
 namespace DeskBuddy
 {
-    void ApiClient::setBearer(String token) { _bearer = token; }
-    void ApiClient::setDefaultHeader(String key, String value) { _extraHeaders += key + ": " + value + "\r\n"; }
-    bool ApiClient::getJson(const String &path, DynamicJsonDocument &out, int *httpCode)
+    static ApiClient *g_instance = nullptr;
+
+    // ---- Singleton init overloads ----
+    void ApiClient::init()
     {
-        return requestJson("GET", path, nullptr, out, httpCode);
+        if (!g_instance) g_instance = new ApiClient();
+        g_instance->_base = String();
+        g_instance->_opt  = Options{};
     }
-    bool ApiClient::postJson(const String &path, const DynamicJsonDocument &body, DynamicJsonDocument &out, int *httpCode)
+
+    void ApiClient::init(const String &baseUrl)
+    {
+        if (!g_instance) g_instance = new ApiClient();
+        g_instance->_base = baseUrl;
+        g_instance->_opt  = Options{};
+    }
+
+    void ApiClient::init(const String &baseUrl, const Options &opt)
+    {
+        if (!g_instance) g_instance = new ApiClient();
+        g_instance->_base = baseUrl;
+        g_instance->_opt  = opt;
+    }
+
+    ApiClient &ApiClient::instance()
+    {
+        if (!g_instance) init(); // safe default
+        return *g_instance;
+    }
+
+    void ApiClient::setDefaultHeader(const String &key, const String &value)
+    {
+        _extraHeaders += key;
+        _extraHeaders += F(": ");
+        _extraHeaders += value;
+        _extraHeaders += F("\r\n");
+    }
+
+    // Convenience overloads forward to full versions with default RequestParams()
+    bool ApiClient::getJson(const String &urlOrPath, DynamicJsonDocument &out, int *httpCode)
+    {
+        return getJson(urlOrPath, out, httpCode, RequestParams());
+    }
+
+    bool ApiClient::postJson(const String &urlOrPath, const DynamicJsonDocument &body, DynamicJsonDocument &out, int *httpCode)
+    {
+        return postJson(urlOrPath, body, out, httpCode, RequestParams());
+    }
+
+    bool ApiClient::getJson(const String &urlOrPath, DynamicJsonDocument &out, int *httpCode, const RequestParams &rp)
+    {
+        return requestJson("GET", urlOrPath, nullptr, out, httpCode, rp);
+    }
+
+    bool ApiClient::postJson(const String &urlOrPath, const DynamicJsonDocument &body, DynamicJsonDocument &out, int *httpCode, const RequestParams &rp)
     {
         String payload;
         serializeJson(body, payload);
-        return requestJson("POST", path, &payload, out, httpCode);
+        return requestJson("POST", urlOrPath, &payload, out, httpCode, rp);
     }
-     bool ApiClient::requestJson(const char *method, const String &path, const String *body, DynamicJsonDocument &out, int *codeOut)
+
+    bool ApiClient::requestJson(const char *method,
+                                const String &urlOrPath,
+                                const String *body,
+                                DynamicJsonDocument &out,
+                                int *codeOut,
+                                const RequestParams &rp)
     {
-        return request(method, path, body, [&](Stream &s)
-                       {
-      DeserializationError err = deserializeJson(out, s);
-      return !err; }, codeOut);
+        auto onStream = [&](Stream &s) {
+            DeserializationError err = deserializeJson(out, s);
+            return !err;
+        };
+        return request(method, urlOrPath, body, onStream, codeOut, rp);
     }
+
     void ApiClient::prepareClient()
     {
-        if (_opt.insecure)
+        if (_opt.insecure) _secure.setInsecure();
+        else if (_opt.ca_pem) _secure.setCACert(_opt.ca_pem);
+    }
+
+    void ApiClient::addStdHeaders(HTTPClient &http, bool hasBody, const RequestParams &rp)
+    {
+        if (hasBody) http.addHeader(F("Content-Type"), F("application/json"));
+
+        // global defaults
+        int start = 0;
+        while (start < _extraHeaders.length())
         {
-            _secure.setInsecure();
+            int end = _extraHeaders.indexOf('\n', start);
+            if (end < 0) end = _extraHeaders.length();
+            String line = _extraHeaders.substring(start, end);
+            int colon = line.indexOf(':');
+            if (colon > 0)
+            {
+                String k = line.substring(0, colon);
+                String v = line.substring(colon + 1);
+                v.trim();
+                http.addHeader(k, v);
+            }
+            start = end + 1;
         }
-        else if (_opt.ca_pem)
+
+        // opt-in auth
+        if (rp.useBearer)
         {
-            _secure.setCACert(_opt.ca_pem);
+            if (rp.bearer && rp.bearer[0] != '\0')
+                http.addHeader(F("Authorization"), String(F("Bearer ")) + rp.bearer);
+            else if (_bearer.length())
+                http.addHeader(F("Authorization"), String(F("Bearer ")) + _bearer);
+        }
+
+        // per-request headers
+        int s2 = 0;
+        while (s2 < rp.extraHeaders.length())
+        {
+            int e2 = rp.extraHeaders.indexOf('\n', s2);
+            if (e2 < 0) e2 = rp.extraHeaders.length();
+            String line = rp.extraHeaders.substring(s2, e2);
+            int colon = line.indexOf(':');
+            if (colon > 0)
+            {
+                String k = line.substring(0, colon);
+                String v = line.substring(colon + 1);
+                v.trim();
+                http.addHeader(k, v);
+            }
+            s2 = e2 + 1;
         }
     }
 
-    void ApiClient::addStdHeaders(HTTPClient &http, bool hasBody)
+    bool ApiClient::isAbsoluteUrl(const String &s) const
     {
-        http.addHeader("Accept", "application/json");
-        if (hasBody)
-            http.addHeader("Content-Type", "application/json");
-        if (_bearer.length())
-            http.addHeader("Authorization", "Bearer " + _bearer);
+        return s.startsWith(F("http://")) || s.startsWith(F("https://"));
+    }
 
-        // Custom default headers (one-per-line "Key: Value\r\n")
-        if (_extraHeaders.length())
-        {
-            // HTTPClient has no bulk-headers API; parse & add a few common lines if you want.
-            // Minimal approach: rely on addHeader above per call,
-            // or keep _extraHeaders unused if not needed.
-        }
+    String ApiClient::resolveUrl(const String &urlOrPath) const
+    {
+        if (isAbsoluteUrl(urlOrPath)) return urlOrPath;
+        return joinUrl(urlOrPath);
     }
 
     String ApiClient::joinUrl(const String &path) const
     {
-        if (path.length() && path[0] == '/')
-            return _base + path;
-        if (_base.endsWith("/"))
-            return _base + path;
-        return _base + "/" + path;
+        if (_base.length() == 0) return path;
+        if (path.length() == 0)  return _base;
+
+        const bool baseEndsSlash  = _base.endsWith("/");
+        const bool pathStartsSlash = path.startsWith("/");
+
+        if (baseEndsSlash && pathStartsSlash)  return _base + path.substring(1);
+        if (!baseEndsSlash && !pathStartsSlash) return _base + "/" + path;
+        return _base + path;
+    }
+
+    bool ApiClient::beginForUrl(HTTPClient &http, const String &url)
+    {
+        if (url.startsWith(F("https://"))) return http.begin(_secure, url);
+        if (url.startsWith(F("http://")))  return http.begin(_plain,  url);
+        // fallback attempt after join
+        String r = resolveUrl(url);
+        if (r.startsWith(F("https://"))) return http.begin(_secure, r);
+        if (r.startsWith(F("http://")))  return http.begin(_plain,  r);
+        return false;
     }
 }
