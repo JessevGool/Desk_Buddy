@@ -2,48 +2,98 @@
 
 namespace DeskBuddy
 {
+
+    MinecraftServerInfoPage::MinecraftServerInfoPage(ApiClient &client)
+        : DisplayPage("Server Info"), _client(client)
+    {
+        this->setup();
+    }
+
+    void MinecraftServerInfoPage::setup()
+    {
+        statusMutex = xSemaphoreCreateMutex();
+        xTaskCreatePinnedToCore(
+            InfoTaskTrampoline,
+            "Display Input Task",
+            8192,
+            this,
+            1,
+            &infoTaskHandle,
+            1);
+    }
+
+    void MinecraftServerInfoPage::InfoTaskTrampoline(void *param)
+    {
+        auto *self = static_cast<MinecraftServerInfoPage *>(param);
+        self->InfoTaskLoop();
+        vTaskDelete(nullptr);
+    }
+    void MinecraftServerInfoPage::InfoTaskLoop()
+    {
+        for (;;)
+        {
+            int code = 0;
+            doc.clear();
+            bool ok = _client.getJson(
+                "https://api.mcsrvstat.us/3/play.cubecraft.net",
+                doc, &code);
+
+            if (ok && doc.size() > 0)
+            {
+                McServerModel tmp;
+                tmp.parseMcServerStatus(doc);
+
+                if (statusMutex && xSemaphoreTake(statusMutex, pdMS_TO_TICKS(50)) == pdTRUE)
+                {
+                    Serial.println("MC status updated");
+                    status = std::move(tmp);
+                    haveData = status.isValid(); 
+                    xSemaphoreGive(statusMutex);
+                }
+            }
+            else
+            {
+                Serial.printf("MC fetch failed (ok=%d, code=%d, size=%u)\n",
+                              ok, code, (unsigned)doc.size());
+            }
+
+            vTaskDelay(pdMS_TO_TICKS(5000));
+        }
+    }
+
     void MinecraftServerInfoPage::draw(Adafruit_ILI9341 &display)
     {
         drawTitle(display);
         display.setTextSize(1);
         display.setCursor(0, 30);
         display.println(F("Minecraft Server Info"));
-        display.println(F("This is the second page!"));
-        display.println(F("Use joystick right to switch"));
-        display.println(F("back to Main page."));
 
-        DeskBuddy::ApiClient::RequestParams rp;
+        McServerModel snap;
+        bool snapValid = false;
 
-        DynamicJsonDocument doc(16384); // or use filter (shown below)
-        int code = 0;
-
-        bool ok = _client.getJson(
-            "https://api.mcsrvstat.us/3/play.cubecraft.net",
-            doc, &code);
-
-        if (!ok)
+        if (statusMutex && xSemaphoreTake(statusMutex, pdMS_TO_TICKS(10)) == pdTRUE)
         {
-            display.println("Request failed!");
+            snap = status;
+            snapValid = haveData;
+            xSemaphoreGive(statusMutex);
+        }
+
+        if (!snapValid)
+        {
+            display.println(F("Loading..."));
+            display.println(F("(If this stays, check WiFi/API)"));
             return;
         }
 
-        if (doc.size() == 0)
-        {
-            display.println("JSON document is empty!");
-            return;
-        }
+        display.printf("IP: %s\n", snap.ip.c_str());
+        display.printf("Port: %u\n", snap.port);
+        display.printf("Online: %s\n", snap.online ? "Yes" : "No");
 
-        String jsonString;
-        size_t len = serializeJson(doc, jsonString);
-        McServerModel status;
-        status.parseMcServerStatus(doc);
-        display.printf("IP: %s\n", status.ip.c_str());
-        display.printf("Port: %u\n", status.port);
-        display.printf("Online: %s\n", status.online ? "Yes" : "No");
-        display.printf("Players: %d/%d\n", status.playersOnline, status.playersMax);
-        
-        ProgressBar pb = ProgressBar(display, 50, 150, 200, 20);
-        int playerPercentage = status.playersOnline * 100 / status.playersMax;
+        int maxPlayers = this->status.playersMax > 0 ? this->status.playersMax : 1;
+        int playerPercentage = (this->status.playersOnline * 100) / maxPlayers;
+        display.printf("Players: %d/%d\n", snap.playersOnline, snap.playersMax);
+
+        ProgressBar pb(display, 50, 150, 200, 20);
         pb.setProgress(playerPercentage);
         pb.draw();
     }

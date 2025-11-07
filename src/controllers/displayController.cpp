@@ -8,12 +8,19 @@ namespace DeskBuddy
     DisplayController::DisplayController(Adafruit_ILI9341 &display, JoystickController &joystick)
         : display(display), currentIndex(0), joystickController(&joystick)
     {
-        this->setInitialPages();
+        this->setup();
     }
 
-    void DisplayController::setInitialPages()
+    void DisplayController::setup()
     {
-
+        xTaskCreatePinnedToCore(
+            InputTaskTrampoline,
+            "Display Input Task",
+            4096,
+            this,
+            1,
+            &inputTaskHandle,
+            1);
         ApiClient &client = DeskBuddy::ApiClient::instance();
 
         this->addPage(std::unique_ptr<DisplayPage>(new MainPage()));
@@ -124,39 +131,50 @@ namespace DeskBuddy
         joystickController = &joystick;
     }
 
-    void DisplayController::handleInput()
+    void DisplayController::InputTaskTrampoline(void *param)
     {
-        if (!joystickController)
-            return;
-
-        // Debounce input
-        unsigned long currentTime = millis();
-        if (currentTime - lastInputTime < INPUT_DEBOUNCE_MS)
-            return;
-
-        // Handle navigation
-        if (joystickController->joystickHoldRight())
-        {
-            getNextPage();
-            lastInputTime = currentTime;
-            Serial.printf("Switched to next page: %s\n", pages[currentIndex].first.c_str());
-        }
-        else if (joystickController->joystickHoldLeft())
-        {
-            getPreviousPage();
-            lastInputTime = currentTime;
-            Serial.printf("Switched to previous page: %s\n", pages[currentIndex].first.c_str());
-        }
-
-        // You can add more input handling here, like:
-        // - Up/Down for page-specific navigation
-        // - Select button for page-specific actions
+        auto *self = static_cast<DisplayController *>(param);
+        self->InputTaskLoop();
+        vTaskDelete(nullptr); // just in case loop exits
     }
 
+    void DisplayController::InputTaskLoop()
+    {
+        for (;;)
+        {
+            if (!joystickController)
+            {
+                vTaskDelay(pdMS_TO_TICKS(50));
+                continue;
+            }
+
+            unsigned long currentTime = millis();
+            if (currentTime - lastInputTime < INPUT_DEBOUNCE_MS)
+            {
+                vTaskDelay(pdMS_TO_TICKS(5));
+                continue;
+            }
+
+            if (joystickController->joystickHoldRight())
+            {
+                getNextPage();
+                lastInputTime = currentTime;
+                Serial.printf("Switched to next page: %s\n", pages[currentIndex].first.c_str());
+            }
+            else if (joystickController->joystickHoldLeft())
+            {
+                getPreviousPage();
+                lastInputTime = currentTime;
+                Serial.printf("Switched to previous page: %s\n", pages[currentIndex].first.c_str());
+            }
+
+            // avoid a hot loop
+            vTaskDelay(pdMS_TO_TICKS(10));
+        }
+    }
 
     void DisplayController::update()
     {
-        handleInput();
         drawCurrentPage();
     }
 

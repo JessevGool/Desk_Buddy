@@ -52,14 +52,13 @@ void setup()
   tft.fillScreen(ILI9341_BLACK);
   tft.println("Connecting to WiFi...");
 
+  connectToWiFi();
+
   // Initialize joystick controller
   joystickController = new DeskBuddy::JoystickController(JOYSTICK_H, JOYSTICK_V, JOYSTICK_SEL);
 
   // Initialize display controller with joystick integration
   displayController = new DeskBuddy::DisplayController(tft, *joystickController);
-
-  connectToWiFi();
-
   DeskBuddy::ApiClient::Options opt;
   opt.insecure = true; // since MCSrvStat has a valid cert, but we can skip validation if needed
   DeskBuddy::ApiClient::init("", opt);

@@ -9,7 +9,7 @@ namespace DeskBuddy
     public:
         McServerModel() = default;
         void parseMcServerStatus(const DynamicJsonDocument &doc);
-
+        bool isValid() const { return !ip.isEmpty() && port != 0; }
         String ip;
         uint16_t port;
         bool online = false;

@@ -32,11 +32,11 @@ namespace DeskBuddy
 
         // Input handling
         void setJoystickController(JoystickController &joystick);
-        void handleInput();
 
     private:
-        void setInitialPages();
-
+        void setup();
+        static void InputTaskTrampoline(void *param);
+        void InputTaskLoop();
         std::vector<std::pair<std::string, std::unique_ptr<DisplayPage>>> pages;
 
         size_t currentIndex = 0;
@@ -47,5 +47,7 @@ namespace DeskBuddy
         bool needsRedraw = true;
         unsigned long lastInputTime = 0;
         static const unsigned long INPUT_DEBOUNCE_MS = 50;
+
+        TaskHandle_t inputTaskHandle = nullptr;
     };
 }

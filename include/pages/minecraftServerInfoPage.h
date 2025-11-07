@@ -9,10 +9,19 @@ namespace DeskBuddy
     class MinecraftServerInfoPage : public DisplayPage
     {
     public:
-        MinecraftServerInfoPage(ApiClient &client) : DisplayPage("Server Info"), _client(client) {}
+        MinecraftServerInfoPage(ApiClient &client);
         void draw(Adafruit_ILI9341 &display) override;
 
     private:
         ApiClient &_client;
+        McServerModel status;
+        void setup();
+        static void InfoTaskTrampoline(void *param);
+        void InfoTaskLoop();
+
+        SemaphoreHandle_t statusMutex = nullptr;
+        TaskHandle_t infoTaskHandle = nullptr;
+        bool haveData = false;
+        DynamicJsonDocument doc{16384};
     };
 }
