@@ -47,7 +47,7 @@ namespace DeskBuddy
                 {
                     Serial.println("MC status updated");
                     status = std::move(tmp);
-                    haveData = status.isValid(); 
+                    haveData = status.isValid();
                     xSemaphoreGive(statusMutex);
                 }
             }
@@ -93,7 +93,9 @@ namespace DeskBuddy
         int playerPercentage = (this->status.playersOnline * 100) / maxPlayers;
         display.printf("Players: %d/%d\n", snap.playersOnline, snap.playersMax);
 
-        ProgressBar pb(display, 50, 150, 200, 20);
+        // Draw Progress Bar on next line based on Cursor Y
+        int textHeight = 8 * 1;
+        ProgressBar pb(display, display.getCursorX(), display.getCursorY(), 4, textHeight, true);
         pb.setProgress(playerPercentage);
         pb.draw();
     }

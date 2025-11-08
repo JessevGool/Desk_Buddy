@@ -2,10 +2,21 @@
 
 namespace DeskBuddy
 {
-    ProgressBar::ProgressBar(Adafruit_ILI9341& tft, int x, int y, int width, int height)
-        : tft(tft), x(x), y(y), width(width), height(height), progress(0) {}
 
-    ProgressBar::ProgressBar(Adafruit_ILI9341& tft, int x, int y, int width, int height, int progress)
+    ProgressBar::ProgressBar(Adafruit_ILI9341 &tft, int x, int y, int width, int height, bool useDisplayRatioForWidth)
+        : tft(tft), x(x), y(y), height(height), progress(0)
+    {
+        if (useDisplayRatioForWidth)
+        {
+            this->width = static_cast<int>(tft.width() / width);
+        }
+        else
+        {
+            this->width = width;
+        }
+    }
+
+    ProgressBar::ProgressBar(Adafruit_ILI9341 &tft, int x, int y, int width, int height, int progress)
         : ProgressBar(tft, x, y, width, height)
     {
         setProgress(progress);

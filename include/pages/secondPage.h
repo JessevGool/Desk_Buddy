@@ -8,5 +8,8 @@ namespace DeskBuddy
     public:
         SecondPage() : DisplayPage("Second") {}
           void draw(Adafruit_ILI9341 &display) override;
+
+          private:
+          
     };
 }

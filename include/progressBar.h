@@ -8,7 +8,7 @@ namespace DeskBuddy
     class ProgressBar
     {
     public:
-        ProgressBar(Adafruit_ILI9341& tft, int x, int y, int width, int height);
+        ProgressBar(Adafruit_ILI9341& tft, int x, int y, int width, int height, bool useDisplayRatioForWidth = false);
         ProgressBar(Adafruit_ILI9341& tft, int x, int y, int width, int height, int progress);
         void setProgress(int progress);
         void draw();
