@@ -2,12 +2,26 @@
 #include "bitMapHelpers.h"
 namespace DeskBuddy
 {
-    void SecondPage::draw(Adafruit_ILI9341 &display)
+    void SecondPage::draw()
     {
-        for (const uint16_t *img : images)
+        if (displayImage)
         {
-            drawImageCentered(display, img, 128, 128);
-            delay(100);
+            for (const uint16_t *img : images)
+            {
+                if (!displayImage) {
+                    break;
+                }
+            
+                drawImageCentered(this->display, img, 128, 128);
+                delay(100);
+            }
         }
+    }
+
+    void SecondPage::handleAction()
+    {
+        displayImage = !displayImage;
+        this->display.fillScreen(ILI9341_BLACK);
+        delay(200);
     }
 }

@@ -9,8 +9,9 @@ namespace DeskBuddy
     class MinecraftServerInfoPage : public DisplayPage
     {
     public:
-        MinecraftServerInfoPage(ApiClient &client);
-        void draw(Adafruit_ILI9341 &display) override;
+        MinecraftServerInfoPage(ApiClient &client, Adafruit_ILI9341 &display);
+        void draw() override;
+        void handleAction() override;
 
     private:
         ApiClient &_client;

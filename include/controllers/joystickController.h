@@ -32,8 +32,7 @@ namespace DeskBuddy
         bool isLeftActive(int horizValue);
         bool isUpActive(int vertValue);
         bool isDownActive(int vertValue);
-        bool isSelectPressed(int selectValue);
-        
+        bool isSelectPressed();        
         // Hold detection
         bool joystickHoldRight();
         bool joystickHoldLeft();
@@ -65,6 +64,8 @@ namespace DeskBuddy
         bool leftFired = false;
         bool upFired = false;
         bool downFired = false;
+
+        bool _prevSelectState = false;
         
         unsigned long rightStartMs = 0;
         unsigned long leftStartMs = 0;

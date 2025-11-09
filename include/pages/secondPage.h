@@ -6,10 +6,11 @@ namespace DeskBuddy
     class SecondPage : public DisplayPage
     {
     public:
-        SecondPage() : DisplayPage("Second") {}
-          void draw(Adafruit_ILI9341 &display) override;
+        SecondPage(Adafruit_ILI9341 &display) : DisplayPage("Second", display) {}
+        void draw() override;
+        void handleAction() override;
 
-          private:
-          
+    private:
+        bool displayImage = true;
     };
 }

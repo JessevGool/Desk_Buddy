@@ -3,8 +3,8 @@
 namespace DeskBuddy
 {
 
-    MinecraftServerInfoPage::MinecraftServerInfoPage(ApiClient &client)
-        : DisplayPage("Server Info"), _client(client)
+    MinecraftServerInfoPage::MinecraftServerInfoPage(ApiClient &client, Adafruit_ILI9341 &display)
+        : DisplayPage("Server Info", display), _client(client)
     {
         this->setup();
     }
@@ -61,12 +61,12 @@ namespace DeskBuddy
         }
     }
 
-    void MinecraftServerInfoPage::draw(Adafruit_ILI9341 &display)
+    void MinecraftServerInfoPage::draw()
     {
-        drawTitle(display);
-        display.setTextSize(1);
-        display.setCursor(0, 30);
-        display.println(F("Minecraft Server Info"));
+        drawTitle(this->display);
+        this->display.setTextSize(1);
+        this->display.setCursor(0, 30);
+        this->display.println(F("Minecraft Server Info"));
 
         McServerModel snap;
         bool snapValid = false;
@@ -98,5 +98,10 @@ namespace DeskBuddy
         ProgressBar pb(display, display.getCursorX(), display.getCursorY(), 4, textHeight, true);
         pb.setProgress(playerPercentage);
         pb.draw();
+    }
+
+    void MinecraftServerInfoPage::handleAction()
+    {
+        // No action defined for this page yet
     }
 }

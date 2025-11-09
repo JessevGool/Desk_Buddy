@@ -34,6 +34,8 @@ namespace DeskBuddy
 
     void ProgressBar::draw()
     {
+        // Needs testing
+        this->tft.println();
         this->tft.drawRect(x, y, width, height, ILI9341_WHITE);
         int filledWidth = (width - 2) * progress / 100;
         tft.fillRect(x + 1, y + 1, filledWidth, height - 2, ILI9341_GREEN);

@@ -23,9 +23,9 @@ namespace DeskBuddy
             1);
         ApiClient &client = DeskBuddy::ApiClient::instance();
 
-        this->addPage(std::unique_ptr<DisplayPage>(new MainPage()));
-        this->addPage(std::unique_ptr<DisplayPage>(new SecondPage()));
-        this->addPage(std::unique_ptr<DisplayPage>(new MinecraftServerInfoPage(client)));
+        this->addPage(std::unique_ptr<DisplayPage>(new MainPage(display)));
+        this->addPage(std::unique_ptr<DisplayPage>(new SecondPage(display)));
+        this->addPage(std::unique_ptr<DisplayPage>(new MinecraftServerInfoPage(client, display)));
     }
 
     void DisplayController::addPage(std::unique_ptr<DisplayPage> page)
@@ -123,7 +123,7 @@ namespace DeskBuddy
 
         display.setCursor(0, 0);
         display.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
-        pages[currentIndex].second->draw(display);
+        pages[currentIndex].second->draw();
     }
 
     void DisplayController::setJoystickController(JoystickController &joystick)
@@ -168,6 +168,12 @@ namespace DeskBuddy
                 Serial.printf("Switched to previous page: %s\n", pages[currentIndex].first.c_str());
             }
 
+                
+            if (joystickController->isSelectPressed())
+            {
+                pages[currentIndex].second->handleAction();
+                lastInputTime = currentTime;
+            }
             // avoid a hot loop
             vTaskDelay(pdMS_TO_TICKS(10));
         }
