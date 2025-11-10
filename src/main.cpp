@@ -11,7 +11,6 @@
 #include <DHT.h>
 
 #include "controllers/displayController.h"
-#include "secrets.h"
 #include "progressBar.h"
 
 #define WIFI_SSID_W "Wokwi-GUEST"

@@ -23,6 +23,6 @@ namespace DeskBuddy
         SemaphoreHandle_t statusMutex = nullptr;
         TaskHandle_t infoTaskHandle = nullptr;
         bool haveData = false;
-        DynamicJsonDocument doc{16384};
+        DynamicJsonDocument doc{8192};
     };
 }

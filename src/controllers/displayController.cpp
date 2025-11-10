@@ -13,6 +13,7 @@ namespace DeskBuddy
 
     void DisplayController::setup()
     {
+        g_httpMutex = xSemaphoreCreateMutex();
         xTaskCreatePinnedToCore(
             InputTaskTrampoline,
             "Display Input Task",
@@ -26,6 +27,7 @@ namespace DeskBuddy
         this->addPage(std::unique_ptr<DisplayPage>(new MainPage(display)));
         this->addPage(std::unique_ptr<DisplayPage>(new SecondPage(display)));
         this->addPage(std::unique_ptr<DisplayPage>(new MinecraftServerInfoPage(client, display)));
+        this->addPage(std::unique_ptr<DisplayPage>(new WeatherPage(client, display)));
     }
 
     void DisplayController::addPage(std::unique_ptr<DisplayPage> page)
@@ -168,7 +170,6 @@ namespace DeskBuddy
                 Serial.printf("Switched to previous page: %s\n", pages[currentIndex].first.c_str());
             }
 
-                
             if (joystickController->isSelectPressed())
             {
                 pages[currentIndex].second->handleAction();

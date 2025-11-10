@@ -1,5 +1,7 @@
 #include "pages/minecraftServerInfoPage.h"
 
+
+
 namespace DeskBuddy
 {
 
@@ -14,7 +16,7 @@ namespace DeskBuddy
         statusMutex = xSemaphoreCreateMutex();
         xTaskCreatePinnedToCore(
             InfoTaskTrampoline,
-            "Display Input Task",
+            "Info Task",
             8192,
             this,
             1,
@@ -34,27 +36,32 @@ namespace DeskBuddy
         {
             int code = 0;
             doc.clear();
-            bool ok = _client.getJson(
-                "https://api.mcsrvstat.us/3/play.cubecraft.net",
-                doc, &code);
-
-            if (ok && doc.size() > 0)
+            if (g_httpMutex && xSemaphoreTake(g_httpMutex, portMAX_DELAY) == pdTRUE)
             {
-                McServerModel tmp;
-                tmp.parseMcServerStatus(doc);
+                bool ok = _client.getJson(
+                    "https://api.mcsrvstat.us/3/play.cubecraft.net",
+                    doc, &code);
 
-                if (statusMutex && xSemaphoreTake(statusMutex, pdMS_TO_TICKS(50)) == pdTRUE)
+                if (ok && doc.size() > 0)
                 {
-                    Serial.println("MC status updated");
-                    status = std::move(tmp);
-                    haveData = status.isValid();
-                    xSemaphoreGive(statusMutex);
+                    McServerModel tmp;
+                    tmp.parseMcServerStatus(doc);
+
+                    if (statusMutex && xSemaphoreTake(statusMutex, pdMS_TO_TICKS(50)) == pdTRUE)
+                    {
+                        Serial.println("MC status updated");
+                        status = std::move(tmp);
+                        haveData = status.isValid();
+                        xSemaphoreGive(statusMutex);
+                    }
+                    
                 }
-            }
-            else
-            {
-                Serial.printf("MC fetch failed (ok=%d, code=%d, size=%u)\n",
-                              ok, code, (unsigned)doc.size());
+                else
+                {
+                    Serial.printf("MC fetch failed (ok=%d, code=%d, size=%u)\n",
+                                  ok, code, (unsigned)doc.size());
+                }
+                xSemaphoreGive(g_httpMutex);
             }
 
             vTaskDelay(pdMS_TO_TICKS(5000));

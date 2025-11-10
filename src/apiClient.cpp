@@ -1,5 +1,8 @@
 #include "ApiClient.h"
 
+
+SemaphoreHandle_t g_httpMutex = nullptr;
+
 namespace DeskBuddy
 {
     static ApiClient *g_instance = nullptr;
@@ -67,45 +70,36 @@ namespace DeskBuddy
         return requestJson("POST", urlOrPath, &payload, out, httpCode, rp);
     }
 
-    bool ApiClient::requestJson(const char *method,
-                                const String &urlOrPath,
-                                const String *body,
-                                DynamicJsonDocument &out,
-                                int *codeOut,
-                                const RequestParams &rp)
+   bool ApiClient::requestJson(const char *method,
+                            const String &urlOrPath,
+                            const String *body,
+                            DynamicJsonDocument &out,
+                            int *codeOut,
+                            const RequestParams &rp)
+{
+    DeserializationError lastErr = DeserializationError::Ok;
+
+    auto onStream = [&](Stream &s) {
+        // Directly parse from the stream – no big String buffer
+        lastErr = deserializeJson(out, s);
+        return !lastErr;
+    };
+
+    bool ok = request(method, urlOrPath, body, onStream, codeOut, rp);
+
+    if (!ok || lastErr)
     {
-        String response;
-        DeserializationError lastErr = DeserializationError::Ok;
+        Serial.println(F("JSON parse failed or HTTP error."));
 
-        auto onStream = [&](Stream &s)
-        {
-            // Read the entire response body into a String for debugging
-            while (s.available())
-            {
-                response += (char)s.read();
-                // Optional safety limit:
-                if (response.length() > 32768)
-                    break;
-            }
-
-            // Try to parse the full response
-            lastErr = deserializeJson(out, response);
-            return !lastErr;
-        };
-
-        bool ok = request(method, urlOrPath, body, onStream, codeOut, rp);
-
-        // Always print response if something went wrong
-        if (!ok || lastErr)
-        {
-            Serial.println(F("---- Raw response start ----"));
-            Serial.println(response);
-            Serial.println(F("---- Raw response end ----"));
-            Serial.printf("JSON parse error: %s\n", lastErr.c_str());
-        }
-
-        return ok;
+        // Optional: small debug buffer just to log first part of response
+        // (be careful not to disturb the Stream position if you reuse it)
+        // For pure debug, maybe do this in request() instead.
+        Serial.printf("JSON parse error: %s\n", lastErr.c_str());
     }
+
+    return ok && !lastErr;
+}
+
 
     void ApiClient::prepareClient()
     {

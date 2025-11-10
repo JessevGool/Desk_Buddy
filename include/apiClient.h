@@ -5,6 +5,8 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
+
+extern SemaphoreHandle_t g_httpMutex;
 namespace DeskBuddy
 {
     class ApiClient

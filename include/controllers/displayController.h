@@ -4,11 +4,13 @@
 #include <memory>
 #include <Adafruit_ILI9341.h>
 #include "displayPage.h"
+#include "controllers/joystickController.h"
+#include "apiClient.h"
+
 #include "pages/mainPage.h"
 #include "pages/secondPage.h"
 #include "pages/minecraftServerInfoPage.h"
-#include "controllers/joystickController.h"
-#include "apiClient.h"
+#include "pages/weatherPage.h"
 
 namespace DeskBuddy
 {
