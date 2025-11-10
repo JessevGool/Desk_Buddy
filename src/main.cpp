@@ -48,6 +48,7 @@ void setup()
 
   tft.begin();
   tft.setRotation(1);
+  tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
   tft.fillScreen(ILI9341_BLACK);
   tft.println("Connecting to WiFi...");
 
