@@ -23,6 +23,25 @@ The goal is to keep relevant information visible at a glance while maintaining a
 
 DeskBuddy was created as a **hobby project**, combining both hardware and software to make a simple, modular, and extendable desktop companion.
 
+## Pinout
+| ESP | HW504 |
+|-----|-------|
+| GND |  GND  |
+| 3V3 | +5V   |
+| D33 | VRx   |
+| D32 | VRy   |
+| D27 | SW    |
+
+| ESP | TFT  |
+|-----|------|
+| GND |  GND |
+| 3V3 | VCC  |
+| D18 | CLK  |
+| D23 | MOSI |
+| D4  | RES  |
+| TX2 | DC   |
+| D19 | MISO |
+| D5  | CS1  |
 ### Tools Used
 - [PlatformIO](https://platformio.org/) – for development and flashing  
 - [Wokwi](https://wokwi.com/) – for simulation and testing  

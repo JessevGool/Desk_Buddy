@@ -5,7 +5,6 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
-
 extern SemaphoreHandle_t g_httpMutex;
 namespace DeskBuddy
 {
@@ -15,29 +14,29 @@ namespace DeskBuddy
         struct Options
         {
             uint16_t timeout_ms = 7000;
-            uint8_t  retries    = 2;
-            bool     insecure   = true;
-            const char *ca_pem  = nullptr;
+            uint8_t retries = 2;
+            bool insecure = true;
+            const char *ca_pem = nullptr;
         };
 
         struct RequestParams
         {
-            bool useBearer      = false;    // opt-in
-            const char *bearer  = nullptr;  // one-off override
-            String extraHeaders;            // "Key: Value\r\n"
+            bool useBearer = false;       // opt-in
+            const char *bearer = nullptr; // one-off override
+            String extraHeaders;          // "Key: Value\r\n"
         };
 
         // ---- Singleton ----
-        static void init();                                    // no base, defaults
-        static void init(const String &baseUrl);               // base only
+        static void init();                                          // no base, defaults
+        static void init(const String &baseUrl);                     // base only
         static void init(const String &baseUrl, const Options &opt); // full
 
         static ApiClient &instance();
 
         // ---- Instance API ----
         void setBaseUrl(const String &baseUrl) { _base = baseUrl; }
-        void setOptions(const Options &opt)     { _opt = opt; }
-        void setBearer(const String &token)     { _bearer = token; }
+        void setOptions(const Options &opt) { _opt = opt; }
+        void setBearer(const String &token) { _bearer = token; }
         void setDefaultHeader(const String &key, const String &value);
 
         // GET -> JSON
@@ -87,7 +86,8 @@ namespace DeskBuddy
             const String url = resolveUrl(urlOrPath);
             http.setTimeout(_opt.timeout_ms);
             http.useHTTP10(true);
-            if (!beginForUrl(http, url)) return false;
+            if (!beginForUrl(http, url))
+                return false;
 
             addStdHeaders(http, rawBody != nullptr, rp);
 
@@ -95,10 +95,12 @@ namespace DeskBuddy
             for (uint8_t attempt = 0; attempt <= _opt.retries; ++attempt)
             {
                 code = rawBody ? http.sendRequest(method, *rawBody) : http.sendRequest(method);
-                if (code > 0) break;
+                if (code > 0)
+                    break;
                 delay(150 * (attempt + 1));
             }
-            if (httpCode) *httpCode = code;
+            if (httpCode)
+                *httpCode = code;
 
             bool ok = (code >= 200 && code < 300);
             if (ok)
@@ -112,8 +114,8 @@ namespace DeskBuddy
 
     private:
         ApiClient() = default;
-        ApiClient(const ApiClient&) = delete;
-        ApiClient& operator=(const ApiClient&) = delete;
+        ApiClient(const ApiClient &) = delete;
+        ApiClient &operator=(const ApiClient &) = delete;
 
         bool requestJson(const char *method,
                          const String &urlOrPath,
@@ -126,9 +128,9 @@ namespace DeskBuddy
         void addStdHeaders(HTTPClient &http, bool hasBody, const RequestParams &rp);
 
         String resolveUrl(const String &urlOrPath) const;
-        bool   isAbsoluteUrl(const String &s) const;
+        bool isAbsoluteUrl(const String &s) const;
         String joinUrl(const String &path) const;
-        bool   beginForUrl(HTTPClient &http, const String &url);
+        bool beginForUrl(HTTPClient &http, const String &url);
 
         String _base;
         String _bearer;

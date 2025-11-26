@@ -1,4 +1,7 @@
 #include "pages/weatherPage.h"
+#include <PNGdec.h>
+
+PNG png;
 
 namespace DeskBuddy
 {
@@ -83,43 +86,9 @@ namespace DeskBuddy
                 {
                     if (now - _weekLastUpdateMs >= 120000 || !initialWeekDataFetched)
                     {
-                        url = String("https://api.openweathermap.org/data/2.5/daily?lat=") +
-                              String(LATITUDE, 6) +
-                              "&lon=" + String(LONGITUDE, 6) +
-                              "&cnt=7" + // or "&cnt=" + String(7);
-                              "&appid=" + String(OPENWEATHER_API_KEY) +
-                              "&units=metric";
-
-                        bool ok = _client.getJson(url, _doc, &code);
-                        if (ok && _doc.size() > 0)
-                        {
-                            WeatherDataModel tmp;
-                            tmp.parseWeatherDataWeek(_doc);
-
-                            if (_weatherMutex &&
-                                xSemaphoreTake(_weatherMutex, pdMS_TO_TICKS(50)) == pdTRUE)
-                            {
-                                _weatherWeek = std::move(tmp);
-                                _weekLastUpdateMs = now;
-                                Serial.println("Week weather updated");
-                                xSemaphoreGive(_weatherMutex);
-                            }
-                        }
-                        else
-                        {
-                            Serial.printf("Week weather fetch failed (ok=%d, code=%d, size=%u)\n",
-                                          ok, code, (unsigned)_doc.size());
-                        }
-                        if (!initialWeekDataFetched)
-                        {
-                            initialWeekDataFetched = true;
-                        }
-                    }
-                    {
                         url = String("https://api.openweathermap.org/data/2.5/forecast?lat=") +
                               String(LATITUDE, 6) +
                               "&lon=" + String(LONGITUDE, 6) +
-                              "&cnt=5" +
                               "&appid=" + String(OPENWEATHER_API_KEY) +
                               "&units=metric";
 
@@ -199,11 +168,13 @@ namespace DeskBuddy
                 display.printf("Weekly Forecast for %s\n", snapshot.location.c_str());
                 for (size_t i = 0; i < snapshot.weeklyForecast.size(); i++)
                 {
-                    display.printf("Day %d: %s, %.1f C, %.1f%%\n",
-                                   (int)(i + 1),
+                    display.printf("Date %s: %s, %.1f C, %.1f%%, Wind: %.1f m/s, %d degrees\n",
+                                   snapshot.weeklyForecast[i].date.c_str(),
                                    snapshot.weeklyForecast[i].main.c_str(),
                                    snapshot.weeklyForecast[i].temperature,
-                                   snapshot.weeklyForecast[i].humidity);
+                                   snapshot.weeklyForecast[i].humidity,
+                                   snapshot.weeklyForecast[i].windSpeed,
+                                   snapshot.weeklyForecast[i].windDirection);
                 }
             }
             else
@@ -225,6 +196,6 @@ namespace DeskBuddy
         }
 
         this->display.fillScreen(ILI9341_BLACK);
-        delay(200);
+        delay(1000);
     }
 }

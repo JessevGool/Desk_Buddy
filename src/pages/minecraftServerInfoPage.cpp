@@ -54,7 +54,6 @@ namespace DeskBuddy
                         haveData = status.isValid();
                         xSemaphoreGive(statusMutex);
                     }
-                    
                 }
                 else
                 {

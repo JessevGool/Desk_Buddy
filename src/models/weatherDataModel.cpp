@@ -1,4 +1,6 @@
 #include "models/weatherDataModel.h"
+#include <string>
+
 namespace DeskBuddy
 {
 
@@ -16,26 +18,44 @@ namespace DeskBuddy
         day.main = doc["weather"][0]["main"] | "Unknown";
         day.temperature = doc["main"]["temp"] | 0.0;
         day.humidity = doc["main"]["humidity"] | 0.0;
+        day.windDirection = doc["wind"]["deg"] | 0;
+        day.windSpeed = doc["wind"]["speed"] | 0.0;
     }
 
     void WeatherDataModel::parseWeatherDataWeek(const DynamicJsonDocument &doc)
-    {;
+    {
         location = doc["city"]["name"] | doc["name"] | "Unknown";
-        Serial.printf("Raw Response: %s\n", doc.as<String>().c_str());
         size_t listSize = doc["list"].size();
 
-        if (weeklyForecast.size() < listSize)
+        // Make sure the vector is large enough
+        if (weeklyForecast.size() < 5)
         {
-            weeklyForecast.resize(listSize);
+            weeklyForecast.resize(5);
         }
-
+        String lastDate = "";
+        size_t dayCount = 0;
         for (size_t i = 0; i < listSize; i++)
         {
-            DailyWeather &day = weeklyForecast[i];
-            day.main = doc["list"][i]["weather"][0]["main"] | "Unknown";
+            String dtxt = doc["list"][i]["dt_txt"] | "";
+            int splitter = dtxt.indexOf(' ');
+            String date = dtxt.substring(0, splitter);
+            String time = dtxt.substring(splitter + 1);
 
-            day.temperature = doc["list"][i]["main"]["temp"] | 0.0;
-            day.humidity = doc["list"][i]["main"]["humidity"] | 0.0;
+            // Only add the first entry so we have info for the first day and only add 12:00 entries for subsequent days
+            if (date != lastDate && (lastDate == "" || time == "12:00:00"))
+            {
+                if (dayCount >= 5)
+                    break;
+                lastDate = date;
+                DailyWeather &day = weeklyForecast[dayCount];
+                day.main = doc["list"][i]["weather"][0]["main"] | "Unknown";
+                day.date = date;
+                day.temperature = doc["list"][i]["main"]["temp"] | 0.0;
+                day.humidity = doc["list"][i]["main"]["humidity"] | 0.0;
+                day.windDirection = doc["list"][i]["wind"]["deg"] | 0;
+                day.windSpeed = doc["list"][i]["wind"]["speed"] | 0.0;
+                dayCount++;
+            }
         }
     }
 }

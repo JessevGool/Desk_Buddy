@@ -7,6 +7,9 @@ namespace DeskBuddy
         String main;
         float temperature;
         float humidity;
+        String date;
+        float windSpeed;
+        int windDirection;
     };
     class WeatherDataModel
     {
