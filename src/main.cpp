@@ -9,7 +9,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_ILI9341.h>
 #include <DHT.h>
-
+#include <ArduinoOTA.h>
 #include "controllers/displayController.h"
 #include "progressBar.h"
 
@@ -31,17 +31,29 @@ DeskBuddy::DisplayController *displayController = nullptr;
 DeskBuddy::JoystickController *joystickController = nullptr;
 DeskBuddy::ProgressBar *progressBar = nullptr;
 
+unsigned long last_ota_time = 0;
+
 void connectToWiFi()
 {
+  tft.println("Connecting to WiFi...");
+  tft.println(local_ip.toString());
+
+  if (!WiFi.config(local_ip, gateway, subnet, dns1, dns2 ))
+  {
+    tft.println("STA Failed to configure");
+  }
+
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD, WIFI_CHANNEL);
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(300);
     tft.print(".");
   }
+
   tft.println();
   tft.printf("\nWiFi OK: %s\n", WiFi.localIP().toString().c_str());
 }
+
 void setup()
 {
   Serial.begin(115200);
@@ -50,9 +62,44 @@ void setup()
   tft.setRotation(1);
   tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
   tft.fillScreen(ILI9341_BLACK);
-  tft.println("Connecting to WiFi...");
 
   connectToWiFi();
+
+  ArduinoOTA
+      .onStart([]()
+               {
+      String type;
+      if (ArduinoOTA.getCommand() == U_FLASH) {
+        type = "sketch";
+      } else { 
+        type = "filesystem";
+      }
+
+      Serial.println("Start updating " + type); })
+      .onEnd([]()
+             { Serial.println("\nEnd"); })
+      .onProgress([](unsigned int progress, unsigned int total)
+                  {
+      if (millis() - last_ota_time > 500) {
+        Serial.printf("Progress: %u%%\n", (progress / (total / 100)));
+        last_ota_time = millis();
+      } })
+      .onError([](ota_error_t error)
+               {
+      Serial.printf("Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) {
+        Serial.println("Auth Failed");
+      } else if (error == OTA_BEGIN_ERROR) {
+        Serial.println("Begin Failed");
+      } else if (error == OTA_CONNECT_ERROR) {
+        Serial.println("Connect Failed");
+      } else if (error == OTA_RECEIVE_ERROR) {
+        Serial.println("Receive Failed");
+      } else if (error == OTA_END_ERROR) {
+        Serial.println("End Failed");
+      } });
+
+  ArduinoOTA.begin();
 
   // Initialize joystick controller
   joystickController = new DeskBuddy::JoystickController(JOYSTICK_H, JOYSTICK_V, JOYSTICK_SEL);
@@ -70,6 +117,7 @@ void setup()
 
 void loop()
 {
+  ArduinoOTA.handle();
   // The displayController now handles all input and drawing
   displayController->update();
 
