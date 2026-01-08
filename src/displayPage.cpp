@@ -14,4 +14,14 @@ namespace DeskBuddy
         display.print(F("Current Page: "));
         display.println(this->getName().c_str());
     }
+
+    void DisplayPage::onActivate()
+    {
+        // Default implementation does nothing
+    }
+
+    void DisplayPage::onDeactivate()
+    {
+        // Default implementation does nothing
+    }
 }

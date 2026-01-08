@@ -12,6 +12,12 @@
 #include <ArduinoOTA.h>
 #include "controllers/displayController.h"
 #include "progressBar.h"
+#include "secrets.h"
+
+
+#ifdef SEQ_LOGGER
+#include "seqLogger.h"
+#endif
 
 #define WIFI_SSID_W "Wokwi-GUEST"
 #define WIFI_PASSWORD_W ""
@@ -33,12 +39,27 @@ DeskBuddy::ProgressBar *progressBar = nullptr;
 
 unsigned long last_ota_time = 0;
 
+void setupNTP()
+{
+  // Configure NTP
+  configTime(3600, 3600, "pool.ntp.org", "time.nist.gov");
+
+  // Wait for time to be set
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo))
+  {
+    Serial.println("Failed to obtain time");
+    return;
+  }
+  Serial.println("Time synchronized");
+}
+
 void connectToWiFi()
 {
   tft.println("Connecting to WiFi...");
   tft.println(local_ip.toString());
 
-  if (!WiFi.config(local_ip, gateway, subnet, dns1, dns2 ))
+  if (!WiFi.config(local_ip, gateway, subnet, dns1, dns2))
   {
     tft.println("STA Failed to configure");
   }
@@ -64,6 +85,8 @@ void setup()
   tft.fillScreen(ILI9341_BLACK);
 
   connectToWiFi();
+
+  setupNTP();
 
   ArduinoOTA
       .onStart([]()
@@ -113,6 +136,13 @@ void setup()
   tft.fillScreen(ILI9341_BLACK);
 
   Serial.println("Setup complete. Starting main loop...");
+
+#ifdef SEQ_LOGGER
+  DeskBuddy::SeqLogger::GetInstance()->log(
+      "Information",
+      "ESP32 booted",
+      "Main");
+#endif
 }
 
 void loop()

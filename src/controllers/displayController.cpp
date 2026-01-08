@@ -28,6 +28,8 @@ namespace DeskBuddy
         this->addPage(std::unique_ptr<DisplayPage>(new SecondPage(display)));
         this->addPage(std::unique_ptr<DisplayPage>(new MinecraftServerInfoPage(client, display)));
         this->addPage(std::unique_ptr<DisplayPage>(new WeatherPage(client, display)));
+        this->addPage(std::unique_ptr<DisplayPage>(new TestPage(display)));
+        pages[currentIndex].second->onActivate();
     }
 
     void DisplayController::addPage(std::unique_ptr<DisplayPage> page)
@@ -82,8 +84,12 @@ namespace DeskBuddy
         {
             throw std::runtime_error("No pages available");
         }
+        pages[currentIndex].second->onDeactivate();
+
         currentIndex = (currentIndex + 1) % pages.size();
         needsRedraw = true;
+        pages[currentIndex].second->onActivate();
+
         return *(pages[currentIndex].second);
     }
 
@@ -93,8 +99,12 @@ namespace DeskBuddy
         {
             throw std::runtime_error("No pages available");
         }
+        pages[currentIndex].second->onDeactivate();
+
         currentIndex = (currentIndex == 0) ? pages.size() - 1 : currentIndex - 1;
         needsRedraw = true;
+        pages[currentIndex].second->onActivate();
+
         return *(pages[currentIndex].second);
     }
 
@@ -173,6 +183,7 @@ namespace DeskBuddy
             if (joystickController->isSelectPressed())
             {
                 pages[currentIndex].second->handleAction();
+                needsRedraw = true;
                 lastInputTime = currentTime;
             }
             // avoid a hot loop

@@ -12,6 +12,8 @@ namespace DeskBuddy
         MinecraftServerInfoPage(ApiClient &client, Adafruit_ILI9341 &display);
         void draw() override;
         void handleAction() override;
+        void onActivate() override;
+        void onDeactivate() override;
 
     private:
         ApiClient &_client;
@@ -23,6 +25,8 @@ namespace DeskBuddy
         SemaphoreHandle_t statusMutex = nullptr;
         TaskHandle_t infoTaskHandle = nullptr;
         bool haveData = false;
-        DynamicJsonDocument doc{8192};
+        DynamicJsonDocument doc{512};
+
+        int fetchIntervalMs = 30000;
     };
 }

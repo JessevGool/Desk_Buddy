@@ -11,6 +11,7 @@
 #include "pages/secondPage.h"
 #include "pages/minecraftServerInfoPage.h"
 #include "pages/weatherPage.h"
+#include "pages/testPage.h"
 
 namespace DeskBuddy
 {

@@ -25,7 +25,7 @@ namespace DeskBuddy
 
         SemaphoreHandle_t _weatherMutex = nullptr;
         TaskHandle_t _infoTaskHandle = nullptr;
-        DynamicJsonDocument _doc{8192};
+        DynamicJsonDocument _doc{256};
         bool _singleDayMode = true;
 
         uint32_t _dayLastUpdateMs = 0;

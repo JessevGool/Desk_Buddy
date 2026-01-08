@@ -14,7 +14,9 @@ namespace DeskBuddy
 
         virtual void draw() = 0;
         virtual void handleAction() = 0;
-
+        virtual void onActivate();
+        virtual void onDeactivate();
+        
     private:
         std::string pageName;
 

@@ -1,7 +1,6 @@
 #include "pages/minecraftServerInfoPage.h"
 
 
-
 namespace DeskBuddy
 {
 
@@ -34,6 +33,7 @@ namespace DeskBuddy
     {
         for (;;)
         {
+        
             int code = 0;
             doc.clear();
             if (g_httpMutex && xSemaphoreTake(g_httpMutex, portMAX_DELAY) == pdTRUE)
@@ -44,13 +44,11 @@ namespace DeskBuddy
 
                 if (ok && doc.size() > 0)
                 {
-                    McServerModel tmp;
-                    tmp.parseMcServerStatus(doc);
+                    status.parseMcServerStatus(doc);
 
                     if (statusMutex && xSemaphoreTake(statusMutex, pdMS_TO_TICKS(50)) == pdTRUE)
                     {
                         Serial.println("MC status updated");
-                        status = std::move(tmp);
                         haveData = status.isValid();
                         xSemaphoreGive(statusMutex);
                     }
@@ -63,7 +61,7 @@ namespace DeskBuddy
                 xSemaphoreGive(g_httpMutex);
             }
 
-            vTaskDelay(pdMS_TO_TICKS(5000));
+            vTaskDelay(pdMS_TO_TICKS(this->fetchIntervalMs));
         }
     }
 
@@ -109,5 +107,15 @@ namespace DeskBuddy
     void MinecraftServerInfoPage::handleAction()
     {
         // No action defined for this page yet
+    }
+
+    void MinecraftServerInfoPage::onActivate()
+    {
+        this->fetchIntervalMs = 5000;
+    }
+
+    void MinecraftServerInfoPage::onDeactivate()
+    {
+        this->fetchIntervalMs = 30000;
     }
 }

@@ -35,6 +35,10 @@ namespace DeskBuddy
     {
         for (;;)
         {
+
+            UBaseType_t freeWords = uxTaskGetStackHighWaterMark(nullptr);
+            Serial.printf("Weather task free stack: %lu bytes\n", (unsigned long)freeWords * sizeof(StackType_t));
+
             bool singleDay = _singleDayMode;
 
             String url;
@@ -59,13 +63,11 @@ namespace DeskBuddy
                         bool ok = _client.getJson(url, _doc, &code);
                         if (ok && _doc.size() > 0)
                         {
-                            WeatherDataModel tmp;
-                            tmp.parseWeatherData(_doc);
+                            _weatherDay.parseWeatherData(_doc);
 
                             if (_weatherMutex &&
                                 xSemaphoreTake(_weatherMutex, pdMS_TO_TICKS(50)) == pdTRUE)
                             {
-                                _weatherDay = std::move(tmp);
                                 _dayLastUpdateMs = now;
                                 Serial.println("Day weather updated");
                                 xSemaphoreGive(_weatherMutex);
@@ -95,13 +97,13 @@ namespace DeskBuddy
                         bool ok = _client.getJson(url, _doc, &code);
                         if (ok && _doc.size() > 0)
                         {
-                            WeatherDataModel tmp;
-                            tmp.parseWeatherDataWeek(_doc);
+
+                            _weatherWeek.parseWeatherDataWeek(_doc);
 
                             if (_weatherMutex &&
                                 xSemaphoreTake(_weatherMutex, pdMS_TO_TICKS(50)) == pdTRUE)
                             {
-                                _weatherWeek = std::move(tmp);
+
                                 _weekLastUpdateMs = now;
                                 Serial.println("Week weather updated");
                                 xSemaphoreGive(_weatherMutex);
