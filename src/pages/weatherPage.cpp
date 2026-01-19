@@ -1,5 +1,6 @@
 #include "pages/weatherPage.h"
 #include <PNGdec.h>
+#include "bitMapHelpers.h"
 
 PNG png;
 
@@ -9,6 +10,8 @@ namespace DeskBuddy
         : DisplayPage("Weather", display), _client(apiClient)
     {
         this->setup();
+        this->gridConfig.rows = 10;
+        this->gridConfig.cols = 5;
     }
 
     void WeatherPage::setup()
@@ -106,6 +109,7 @@ namespace DeskBuddy
 
                                 _weekLastUpdateMs = now;
                                 Serial.println("Week weather updated");
+                                this->redrawIcon = true;
                                 xSemaphoreGive(_weatherMutex);
                             }
                         }
@@ -170,14 +174,37 @@ namespace DeskBuddy
                 display.printf("Weekly Forecast for %s\n", snapshot.location.c_str());
                 for (size_t i = 0; i < snapshot.weeklyForecast.size(); i++)
                 {
-                    display.printf("Date %s: %s, %.1f C, %.1f%%, Wind: %.1f m/s, %d degrees\n",
-                                   snapshot.weeklyForecast[i].date.c_str(),
-                                   snapshot.weeklyForecast[i].main.c_str(),
-                                   snapshot.weeklyForecast[i].temperature,
-                                   snapshot.weeklyForecast[i].humidity,
-                                   snapshot.weeklyForecast[i].windSpeed,
-                                   snapshot.weeklyForecast[i].windDirection);
+
+                    char buffer[128];
+                    snprintf(buffer, sizeof(buffer), "%s\n%s\n%.1f C",
+                             snapshot.weeklyForecast[i].date.c_str(),
+                             snapshot.weeklyForecast[i].main.c_str(),
+                             snapshot.weeklyForecast[i].temperature);
+
+                    this->drawText(buffer, i, 5, 1);
+
+                    const uint8_t *iconBitmap = QuestionMark;
+                    if (snapshot.weeklyForecast[i].main == "Clear")
+                    {
+                        iconBitmap = Sunny;
+                    }
+                    else if (snapshot.weeklyForecast[i].main == "Clouds")
+                    {
+                        iconBitmap = Cloudy;
+                    }
+                    else if (snapshot.weeklyForecast[i].main == "Rain" ||
+                             snapshot.weeklyForecast[i].main == "Drizzle" ||
+                             snapshot.weeklyForecast[i].main == "Thunderstorm")
+                    {
+                        iconBitmap = Rainy;
+                    }
+                    if (this->redrawIcon)
+                    {
+                        this->drawIcon(iconBitmap, WEATHER_ICON_WIDTH, WEATHER_ICON_HEIGHT, i, 8);
+                    }
                 }
+
+                this->redrawIcon = false;
             }
             else
             {
@@ -186,6 +213,11 @@ namespace DeskBuddy
                                snapshot.location.c_str());
             }
         }
+    }
+
+    void WeatherPage::onActivate()
+    {
+        this->redrawIcon = true;
     }
 
     void WeatherPage::handleAction()
@@ -198,6 +230,7 @@ namespace DeskBuddy
         }
 
         this->display.fillScreen(ILI9341_BLACK);
+        this->redrawIcon = true;
         delay(1000);
     }
 }

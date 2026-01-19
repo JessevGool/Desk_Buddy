@@ -8,10 +8,11 @@
 #include "apiClient.h"
 
 #include "pages/mainPage.h"
-#include "pages/secondPage.h"
+//#include "pages/secondPage.h"
 #include "pages/minecraftServerInfoPage.h"
 #include "pages/weatherPage.h"
 #include "pages/testPage.h"
+#include "pages/clockPage.h"
 
 namespace DeskBuddy
 {

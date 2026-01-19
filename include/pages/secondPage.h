@@ -9,6 +9,8 @@ namespace DeskBuddy
         SecondPage(Adafruit_ILI9341 &display) : DisplayPage("Second", display) {}
         void draw() override;
         void handleAction() override;
+                void handleUpAction() override {}
+        void handleDownAction() override {}
 
     private:
         bool displayImage = true;

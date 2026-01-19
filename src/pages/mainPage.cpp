@@ -2,6 +2,8 @@
 
 namespace DeskBuddy
 {
+
+    
     void MainPage::draw()
     {
         drawTitle(this->display);

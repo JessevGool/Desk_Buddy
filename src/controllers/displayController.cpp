@@ -25,10 +25,12 @@ namespace DeskBuddy
         ApiClient &client = DeskBuddy::ApiClient::instance();
 
         this->addPage(std::unique_ptr<DisplayPage>(new MainPage(display)));
-        this->addPage(std::unique_ptr<DisplayPage>(new SecondPage(display)));
+        this->addPage(std::unique_ptr<DisplayPage>(new ClockPage(display)));
+        //this->addPage(std::unique_ptr<DisplayPage>(new SecondPage(display)));
         this->addPage(std::unique_ptr<DisplayPage>(new MinecraftServerInfoPage(client, display)));
         this->addPage(std::unique_ptr<DisplayPage>(new WeatherPage(client, display)));
         this->addPage(std::unique_ptr<DisplayPage>(new TestPage(display)));
+        
         pages[currentIndex].second->onActivate();
     }
 
@@ -184,6 +186,18 @@ namespace DeskBuddy
             {
                 pages[currentIndex].second->handleAction();
                 needsRedraw = true;
+                lastInputTime = currentTime;
+            }
+
+            if(joystickController->joystickHoldUp()) {
+                pages[currentIndex].second->handleUpAction();
+                 needsRedraw = true;
+                lastInputTime = currentTime;
+            }
+
+             if(joystickController->joystickHoldDown()) {
+                pages[currentIndex].second->handleDownAction();
+                 needsRedraw = true;
                 lastInputTime = currentTime;
             }
             // avoid a hot loop

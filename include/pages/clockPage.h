@@ -3,13 +3,13 @@
 
 namespace DeskBuddy
 {
-    class MainPage : public DisplayPage
+    class ClockPage : public DisplayPage
     {
     public:
-        MainPage(Adafruit_ILI9341 &display) : DisplayPage("Main", display) {}
+        ClockPage(Adafruit_ILI9341 &display) : DisplayPage("Clock", display) {}
         void draw() override;
         void handleAction() override;
-                void handleUpAction() override {}
+        void handleUpAction() override {}
         void handleDownAction() override {}
     };
 }

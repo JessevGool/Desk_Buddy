@@ -6,16 +6,16 @@ namespace DeskBuddy
     {
         if (displayImage)
         {
-            for (const uint16_t *img : images)
-            {
-                if (!displayImage)
-                {
-                    break;
-                }
+            // for (const uint16_t *img : images)
+            // {
+            //     if (!displayImage)
+            //     {
+            //         break;
+            //     }
 
-                drawImageCentered(this->display, img, 128, 128);
-                delay(100);
-            }
+            //     drawImageCentered(this->display, img, 128, 128);
+            //     delay(100);
+            // }
         }
         else
         {

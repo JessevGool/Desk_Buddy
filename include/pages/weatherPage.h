@@ -12,6 +12,9 @@ namespace DeskBuddy
 
         void draw() override;
         void handleAction() override;
+        void handleUpAction() override {}
+        void handleDownAction() override {}
+        void onActivate() override;
 
     private:
         void setup();

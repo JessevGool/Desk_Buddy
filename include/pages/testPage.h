@@ -9,12 +9,15 @@ namespace DeskBuddy
     class TestPage : public DisplayPage
     {
     public:
-        TestPage(Adafruit_ILI9341 &display) : DisplayPage("Test", display) {}
+        TestPage(Adafruit_ILI9341 &display);
         void draw() override;
         void handleAction() override;
+                void handleUpAction() override;
+        void handleDownAction() override;
         void drawCard(int x, int y, int w, int h, const char *title);
-        void drawGrid(int rows, int cols);
-         void drawSun(int x, int y, int w, int h);
+        void drawGrid();
+        void drawSun(int x, int y, int w, int h);
+        void highlightGridCell(int row, int col);
 
     private:
         const uint16_t C_BG = ILI9341_BLACK;
@@ -26,9 +29,10 @@ namespace DeskBuddy
         const uint16_t C_SECOND_PIXELS = 0xE7BE;
         const uint16_t C_ACCENT = ILI9341_CYAN;
         bool firstRun = true;
-        int gridSize = 1;
-        int lastGridSize = gridSize;
+
         int randomPixels = 0;
+        int highlightedRow = 0;
+        int highlightedCol = 0;
     };
 
 }

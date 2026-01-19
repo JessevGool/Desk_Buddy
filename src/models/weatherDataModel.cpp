@@ -38,7 +38,7 @@ namespace DeskBuddy
         {
             String dtxt = doc["list"][i]["dt_txt"] | "";
             int splitter = dtxt.indexOf(' ');
-            String date = dtxt.substring(0, splitter);
+            String date = dtxt.substring(5, splitter);
             String time = dtxt.substring(splitter + 1);
 
             // Only add the first entry so we have info for the first day and only add 12:00 entries for subsequent days

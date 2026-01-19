@@ -12,6 +12,8 @@ namespace DeskBuddy
         MinecraftServerInfoPage(ApiClient &client, Adafruit_ILI9341 &display);
         void draw() override;
         void handleAction() override;
+                void handleUpAction() override {}
+        void handleDownAction() override {}
         void onActivate() override;
         void onDeactivate() override;
 
